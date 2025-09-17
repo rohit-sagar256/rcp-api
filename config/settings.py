@@ -38,7 +38,11 @@ ALLOWED_HOSTS = []
 
 LOCAL_APPS = [
     # "src.kilo"
-    "src.core.apps.CoreConfig"
+    "src.core.apps.CoreConfig",
+    "rest_framework",
+    "drf_spectacular",
+    "src.user.apps.UserConfig"
+
 ]
 
 INSTALLED_APPS = [
@@ -140,3 +144,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 AUTH_USER_MODEL='core.User'
+
+
+REST_FRAMEWORK= {
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema'
+}
