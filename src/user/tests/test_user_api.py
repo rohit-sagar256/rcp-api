@@ -12,6 +12,8 @@ from faker import Faker
 User = get_user_model()
 
 CREATE_USER_URL = reverse("user:create")
+TOKEN_URL = reverse("user:token")
+ME_URL = reverse("user:me")
 
 faker=Faker()
 
@@ -81,12 +83,100 @@ class TestPublicUserApi:
 
     assert user_exists == False
 
+  def test_create_token_for_user(self,api_client):
+    """ Test generates token for valid credentials """
+    user_details = {
+      "name": "Test Name",
+      "email": "test@example.com",
+      "password": "test-user-password123"
+    }
+
+    create_user(**user_details)
+
+    payload = {
+      "email": user_details["email"],
+      "password": user_details["password"]
+    }
+
+    response = api_client.post(TOKEN_URL, payload)
+
+    assert "token" in response.data
+    assert response.status_code == status.HTTP_200_OK
+
+
+  def test_create_token_bad_credentials(self, api_client):
+    """ Test return error if credentials invalid """
+    create_user(email="test@example.com", password="goodpass")
+
+    payload = {"email": "test@example.com", "password": "badpass"}
+
+    response = api_client.post(TOKEN_URL, payload)
+
+    assert "token" not in response.data
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+  def test_create_token_blank_password(self, api_client):
+    """ Test return error if password is blank """
+    create_user(email="test@example.com", password="goodpass")
+
+    payload = {"email": "test@example.com", "password": ""}
+
+    response = api_client.post(TOKEN_URL, payload)
+
+    assert "token" not in response.data
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+  def test_retrieve_user_unathorized(self, api_client):
+    """ Test authentication is required for users """
+    response = api_client.get(ME_URL)
+
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
 
 
 
 
+@pytest.fixture
+def private_user(db):
+    return create_user(
+        email="test@example.com",
+        password="pass123",
+        name="Test Private"
+    )
+
+@pytest.fixture
+def authenticated_user(private_user):
+  client = APIClient()
+  client.force_authenticate(user=private_user)
+  return client
 
 
+
+@pytest.mark.django_db
+class TestPrivateUser:
+  """ Test api request that requires authentication """
+
+  def test_retrieve_profile_success(self, private_user, authenticated_user):
+    """ Test retrieving profile for logged in user """
+    response = authenticated_user.get(ME_URL)
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data["name"] == private_user.name
+    assert response.data["email"] == private_user.email
+
+  def test_post_me_not_allowed(self,authenticated_user):
+    response = authenticated_user.post(ME_URL, {})
+    assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
+
+  def test_update_user_profile(self, private_user, authenticated_user):
+    """ Test updating the user profile for the authenticated """
+    payload = {"name": "updated name", "password":"newpassword"}
+
+    response = authenticated_user.patch(ME_URL, payload)
+    private_user.refresh_from_db()
+    assert private_user.name == payload["name"]
+    assert private_user.check_password(payload["password"])
+
+    assert response.status_code  == status.HTTP_200_OK
 

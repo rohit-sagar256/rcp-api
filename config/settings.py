@@ -40,6 +40,7 @@ LOCAL_APPS = [
     # "src.kilo"
     "src.core.apps.CoreConfig",
     "rest_framework",
+    "rest_framework.authtoken",
     "drf_spectacular",
     "src.user.apps.UserConfig"
 
