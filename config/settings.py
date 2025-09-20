@@ -42,7 +42,8 @@ LOCAL_APPS = [
     "rest_framework",
     "rest_framework.authtoken",
     "drf_spectacular",
-    "src.user.apps.UserConfig"
+    "src.user.apps.UserConfig",
+    "src.recipe.apps.RecipeConfig"
 
 ]
 
