@@ -2,9 +2,13 @@
 Tests from models
 """
 
+from decimal import Decimal
+
 import pytest
 
 from django.contrib.auth import get_user_model
+
+from src.core import models
 
 User = get_user_model()
 
@@ -52,3 +56,23 @@ def test_create_super_user():
 
   assert user.is_superuser
   assert user.is_staff
+
+@pytest.mark.django_db
+def test_create_recipe():
+    user = User.objects.create_user(
+        email="test@example.com",
+        password="testpass123"
+    )
+
+    recipe = models.Recipe.objects.create(
+        user=user,
+        title="test",
+        description="Sample Recipe Test",
+        time_minutes=5,
+        price=Decimal("3.50")
+    )
+
+    assert str(recipe) == recipe.title
+
+
+
