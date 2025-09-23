@@ -76,3 +76,16 @@ def test_create_recipe():
 
 
 
+
+@pytest.mark.django_db
+def test_create_tag():
+  user = User.objects.create_user(
+    email="testtaguser@example.com",
+    password="testpass123"
+  )
+
+  tag = models.Tag.objects.create(
+    user=user,
+    name="Vegan"
+  )
+  assert str(tag) == tag.name

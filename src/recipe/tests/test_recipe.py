@@ -9,7 +9,7 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from src.core.models import Recipe
+from src.core.models import (Recipe, Tag)
 
 from src.recipe.serializers import (
   RecipeSerializer,
@@ -227,3 +227,52 @@ def test_delete_other_users_recipe_error(authenticated_user, user_cl):
   )
   assert response.status_code == status.HTTP_404_NOT_FOUND
   assert Recipe.objects.filter(id=recipe.id).exists()
+
+
+def test_create_recipe_with_new_tags(authenticated_user, user_cl):
+  """ Test creating a recipe with new tags """
+  payload = {
+    "title": "Sample Recipe with Tags",
+    "time_minutes": 30,
+    "price": Decimal("5.99"),
+    "tags": [{"name": "Vegan"}, {"name": "Dessert"}]
+  }
+  response = authenticated_user.post(RECIPE_URL, payload, format='json')
+
+  assert response.status_code == status.HTTP_201_CREATED
+  recipes = Recipe.objects.filter(user=user_cl)
+  assert recipes.count() == 1
+  recipe = recipes[0]
+  assert recipe.tags.count() == 2
+  for tag in payload['tags']:
+    exists = recipe.tags.filter(
+      name=tag['name'],
+      user=user_cl
+    ).exists()
+    assert exists
+
+
+def test_create_recipe_with_existing_tag(authenticated_user, user_cl):
+  """ Test creating a recipe with existing tag """
+  tag_indian = Tag.objects.create(user=user_cl, name="Indian")
+
+  payload = {
+    "title": "Sample Recipe with Existing Tag",
+    "time_minutes": 30,
+    "price": Decimal("5.99"),
+    "tags": [{"name": "Indian"}, {"name": "Dessert"}]
+  }
+  response = authenticated_user.post(RECIPE_URL, payload, format='json')
+
+  assert response.status_code == status.HTTP_201_CREATED
+  recipes = Recipe.objects.filter(user=user_cl)
+  assert recipes.count() == 1
+  recipe = recipes[0]
+  assert recipe.tags.count() == 2
+  assert tag_indian in recipe.tags.all()
+  for tag in payload['tags']:
+    exists = recipe.tags.filter(
+      name=tag['name'],
+      user=user_cl
+    ).exists()
+    assert exists
