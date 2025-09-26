@@ -1,10 +1,12 @@
 """
 Tests from models
 """
-
+import os
 from decimal import Decimal
 
 import pytest
+
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 
@@ -89,3 +91,29 @@ def test_create_tag():
     name="Vegan"
   )
   assert str(tag) == tag.name
+
+
+@pytest.mark.django_db
+def test_create_ingredient():
+  user = User.objects.create_user(
+    email="testingredientuser@gmail.com",
+    password="testpass123"
+  )
+
+  ingredient = models.Ingredient.objects.create(
+    user=user,
+    name="Cucumber"
+  )
+  assert str(ingredient) == ingredient.name
+
+
+@patch('src.core.models.uuid.uuid4')
+def test_recipe_file_name_uuid(mock_uuid):
+  """ Test generating image path """
+
+  uuid = "test-uuid"
+  mock_uuid.return_value = uuid
+
+  file_path = models.recipe_image_file_path(None, 'example.jpg')
+  expected_path = os.path.join("uploads", "recipe", f"{uuid}.jpg")
+  assert file_path == expected_path
