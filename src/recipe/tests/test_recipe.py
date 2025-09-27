@@ -510,4 +510,55 @@ def test_upload_image_bad_request(authenticated_user, user_cl):
 
 
 
+# filters
+
+def test_filter_by_tags(authenticated_user,user_cl):
+  """ Test filtering recipe by tags """
+
+  r1 = create_recipe(user=user_cl, title="Thai vegetable curry")
+  r2 = create_recipe(user=user_cl, title="Indian curry")
+
+  tag1 = Tag.objects.create(user=user_cl, name="vegan")
+  tag2 = Tag.objects.create(user=user_cl, name="vegeterian")
+
+  r1.tags.add(tag1)
+  r2.tags.add(tag2)
+  r3 = create_recipe(user=user_cl, title="Fish and chips")
+
+  params = {"tags": f"{tag1.id},{tag2.id}"}
+  response = authenticated_user.get(RECIPE_URL, params)
+
+  s1 = RecipeSerializer(r1)
+  s2 = RecipeSerializer(r2)
+  s3 = RecipeSerializer(r3)
+
+  assert s1.data in response.data
+  assert s2.data in response.data
+  assert s3.data not in response.data
+
+
+def test_filter_by_ingredients(authenticated_user,user_cl):
+  """ Test filtering recipe by ingredients """
+
+  r1 = create_recipe(user=user_cl, title="Thai vegetable curry")
+  r2 = create_recipe(user=user_cl, title="Indian curry")
+
+  ingredient1 = Ingredient.objects.create(user=user_cl, name="Masala")
+  ingredient2 = Ingredient.objects.create(user=user_cl, name="Saffron")
+
+  r1.ingredients.add(ingredient1)
+  r2.ingredients.add(ingredient2)
+  r3 = create_recipe(user=user_cl, title="Fish and chips")
+
+  params = {"ingredients": f"{ingredient1.id},{ingredient2.id}"}
+  response = authenticated_user.get(RECIPE_URL, params)
+
+  s1 = RecipeSerializer(r1)
+  s2 = RecipeSerializer(r2)
+  s3 = RecipeSerializer(r3)
+
+  assert s1.data in response.data
+  assert s2.data in response.data
+  assert s3.data not in response.data
+
 

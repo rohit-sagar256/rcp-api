@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 import pytest
 
 from django.contrib.auth import get_user_model
@@ -6,7 +8,7 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from src.core.models import Ingredient
+from src.core.models import (Ingredient, Recipe)
 from src.recipe.serializers import IngredientSerializer
 
 
@@ -110,3 +112,54 @@ def test_delete_ingredient(auth_client, user_cl):
   assert not ingredients.exists()
 
 
+
+def test_filter_ingredients_assigned_to_recipies(auth_client, user_cl):
+  """ Test listing ingredients by those assigned to recipes """
+
+  ingredient1 = Ingredient.objects.create(user=user_cl, name="Masala")
+  ingredient2 = Ingredient.objects.create(user=user_cl, name="Saffron")
+
+  recipe = Recipe.objects.create(
+    title="Apple pie",
+    time_minutes=4,
+    price=Decimal("4.50"),
+    user =user_cl
+  )
+
+  recipe.ingredients.add(ingredient1)
+
+  response = auth_client.get(INGREDIENT_URL, {"assigned_only" : 1})
+
+  s1 = IngredientSerializer(ingredient1)
+  s2 = IngredientSerializer(ingredient2)
+
+  assert s1.data in response.data
+  assert s2.data not in response.data
+
+def test_filtered_ingredients_unique(auth_client, user_cl):
+  """ Test filtered ingredients returns a unique list """
+
+  ingredient = Ingredient.objects.create(user=user_cl, name="Masala")
+
+  Ingredient.objects.create(user=user_cl, name="Saffron")
+
+  recipe1 = Recipe.objects.create(
+    title="Apple pie",
+    time_minutes=4,
+    price=Decimal("4.50"),
+    user =user_cl
+  )
+
+  recipe2 = Recipe.objects.create(
+    title="Eggs curry",
+    time_minutes=10,
+    price=Decimal('9.02'),
+    user=user_cl
+  )
+
+  recipe1.ingredients.add(ingredient)
+  recipe2.ingredients.add(ingredient)
+
+  response = auth_client.get(INGREDIENT_URL, {"assigned_only" : 1})
+
+  assert len(response.data) == 1

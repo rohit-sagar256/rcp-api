@@ -1,5 +1,6 @@
 """ Tests for the tags API."""
 import pytest
+from decimal import Decimal
 
 from django.urls import reverse
 
@@ -98,3 +99,56 @@ def test_delete_tag(auth_client, user_cl):
   assert response.status_code == status.HTTP_204_NO_CONTENT
   tags = Tag.objects.filter(user=user_cl)
   assert not tags.exists()
+
+
+
+def test_filter_ingredients_assigned_to_recipies(auth_client, user_cl):
+  """ Test listing ingredients by those assigned to recipes """
+
+  tag1 = Tag.objects.create(user=user_cl, name="Masala")
+  tag2 = Tag.objects.create(user=user_cl, name="Saffron")
+
+  recipe = Recipe.objects.create(
+    title="Apple pie",
+    time_minutes=4,
+    price=Decimal("4.50"),
+    user =user_cl
+  )
+
+  recipe.ingredients.add(tag1)
+
+  response = auth_client.get(TAGS_URL, {"assigned_only" : 1})
+
+  s1 = TagSerializer(tag1)
+  s2 = TagSerializer(tag2)
+
+  assert s1.data in response.data
+  assert s2.data not in response.data
+
+def test_filtered_ingredients_unique(auth_client, user_cl):
+  """ Test filtered ingredients returns a unique list """
+
+  tag = Tag.objects.create(user=user_cl, name="Masala")
+
+  Tag.objects.create(user=user_cl, name="Saffron")
+
+  recipe1 = Recipe.objects.create(
+    title="Apple pie",
+    time_minutes=4,
+    price=Decimal("4.50"),
+    user =user_cl
+  )
+
+  recipe2 = Recipe.objects.create(
+    title="Eggs curry",
+    time_minutes=10,
+    price=Decimal('9.02'),
+    user=user_cl
+  )
+
+  recipe1.tags.add(tag)
+  recipe2.tags.add(tag)
+
+  response = auth_client.get(TAGS_URL, {"assigned_only" : 1})
+
+  assert len(response.data) == 1
